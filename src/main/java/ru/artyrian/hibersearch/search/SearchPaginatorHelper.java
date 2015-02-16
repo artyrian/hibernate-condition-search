@@ -35,7 +35,8 @@ public class SearchPaginatorHelper<T> {
                                           final Integer from,
                                           final Integer size)
     {
-        DetachedCriteria detachedCriteria = buildDetachedCriteria(example, commonDetachedCriteria);
+        DetachedCriteria detachedCriteria = initAliases(commonDetachedCriteria, example);
+        detachedCriteria = buildDetachedCriteria(example, detachedCriteria);
 
         Criteria criteriaCount = detachedCriteria.getExecutableCriteria(session);
         Long totalResult = (Long) criteriaCount
@@ -62,6 +63,19 @@ public class SearchPaginatorHelper<T> {
         return new PaginationResult<T>(resultList, totalResult.intValue());
     }
 
+    // set item.aliasPath to all usable searchItems.
+    private DetachedCriteria initAliases(DetachedCriteria detachedCriteria, SearchContainer example) {
+        List<String> aliasList = new ArrayList<>();
+        for (Object objectItem : example.getItemMap().values()) {
+            SearchItem item = (SearchItem) objectItem;
+            if (item.getValue() != null || item.getOrder() > 0) {
+                detachedCriteria = connectWithAlias(detachedCriteria, item, aliasList);
+            }
+        }
+
+        return detachedCriteria;
+    }
+
     private void addOrder(Criteria criteria, SearchContainer container) {
         List<SearchItem> list = new ArrayList(container.getItemMap().values());
         Comparator<SearchItem> comparator = new Comparator<SearchItem>() {
@@ -75,9 +89,9 @@ public class SearchPaginatorHelper<T> {
         for (SearchItem searchItem : list) {
             if (searchItem.getOrder() > 0) {
                 if (searchItem.isDesc()) {
-                    criteria.addOrder(Order.desc(searchItem.getPath()));
+                    criteria.addOrder(Order.desc(searchItem.aliasPath));
                 } else {
-                    criteria.addOrder(Order.asc(searchItem.getPath()));
+                    criteria.addOrder(Order.asc(searchItem.aliasPath));
                 }
             }
         }
@@ -114,13 +128,13 @@ public class SearchPaginatorHelper<T> {
 
     private static DetachedCriteria buildDetachedCriteria(SearchContainer example, DetachedCriteria detachedCriteria) {
         if (!example.getItemMap().isEmpty()) {
-            List<String> aliasList = new ArrayList<String>();
+            //List<String> aliasList = new ArrayList<>();
 
             for (Object objectItem : example.getItemMap().values()) {
                 SearchItem item = (SearchItem) objectItem;
 
                 if (item.getValue() != null) {
-                    detachedCriteria = connectWithAlias(detachedCriteria, item, aliasList);
+                    //detachedCriteria = connectWithAlias(detachedCriteria, item, aliasList);
                     String path = item.aliasPath;
 
                     Object value = cast(item.getValue(), item.getType());
